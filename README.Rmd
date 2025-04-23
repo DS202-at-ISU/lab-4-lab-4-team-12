@@ -19,6 +19,7 @@ All submissions to the github repo will be automatically uploaded for grading on
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(Lahman)
 hof <- Lahman::HallOfFame
 hof %>% 
   ggplot(aes(x = yearID, y = votes/needed*100, group=playerID)) +
@@ -29,3 +30,15 @@ hof %>%
   xlim(c(2000, 2022)) +
   ylab("Percent of votes")
 ```
+
+```{r}
+library(rvest)
+url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
+html <- read_html(url)
+html
+tables <- html %>% html_table(fill=TRUE)
+tables
+```
+
+
+
