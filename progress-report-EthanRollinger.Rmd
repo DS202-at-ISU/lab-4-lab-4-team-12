@@ -11,4 +11,12 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Lab Notes for Lab #4:
 
-I started the lab by bringing in the website data set locally using the url function and creating it into an html. I then pulled the html from the url and created an initial table from the website. The enxt step was to clean the dataset in order to match it to the existing Lahman data set (Same columns and rows). My first thoughts were to go to the lecture code from the last few weeks to understand how to start. I then used online sources to help me get started. I had difficulty at first because the html didn't recognize the column headers as the column headers, so it put it into the first row. I had to ask ChatGPT to help me fix this issue so I could move onto the next step. I then started cleaning up the data in order to make it like the Lahman table. I then ran into a problem with duplicate names, so I filtered them out to clean the data. After some time, I cleaned the data and got it into the Lahman form. Finally, I combined the data frames together. I then cleaned up the Rmd file, while creating a graph that it similar to the lab #4 instructions. 
+I started the lab by bringing in the website data set locally using the url function and creating it into an html. I then
+pulled the html from the url and created an initial table from the website. The enxt step was to clean the dataset in order
+to match it to the existing Lahman data set (Same columns and rows). My first thoughts were to go to the lecture code from
+the last few weeks to understand how to start. I then used online sources to help me get started. I had difficulty at first
+because the html didn't recognize the column headers as the column headers, so it put it into the first row. I had to ask
+ChatGPT to help me fix this issue so I could move onto the next step. I then started cleaning up the data in order to make
+it like the Lahman table. I then ran into a problem with duplicate names, so I filtered them out to clean the data. After
+some time, I cleaned the data and got it into the Lahman form. Finally, I combined the data frames together. I then cleaned
+up the Rmd file, while creating a graph that it similar to the lab #4 instructions. 
