@@ -35,10 +35,64 @@ hof %>%
 library(rvest)
 url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
 html <- read_html(url)
-html
-tables <- html %>% html_table(fill=TRUE)
-tables
+table_node <- html %>% html_element("table")
+hof_2025_raw<- table_node %>% html_table(fill=TRUE)
+
+names(hof_2025_raw) <- as.character(unlist(hof_2025_raw[1, ]))
+hof_2025_raw <- hof_2025_raw[-1, ]
+
+names(hof_2025_raw)
+
+summary(HallOfFame)
+View(HallOfFame)
+
+library(dplyr)
+library(stringr)
+
+colnames(hof_2025_raw) <- make.names(colnames(hof_2025_raw), unique = TRUE)
+
+names(hof_2025_raw)
+
+
+hof_2025_clean <- hof_2025_raw %>%
+  filter(!is.na(Name) & Name != "" & !is.na(Votes) & Votes != "")
+
+hof_2025_clean <- hof_2025_clean %>%
+  distinct(Name, .keep_all = TRUE)
+
+hof_2025 <- hof_2025_clean %>%
+  mutate(
+    playerID = str_replace_all(Name, " ", ""),
+    yearID = 2025,
+    votedBy = "BBWAA",
+    ballots = NA,
+    needed = NA,                             
+    votes = as.numeric(Votes),
+    pct_vote = as.numeric(str_replace(`X.vote`, "%", "")),
+    inducted = ifelse(pct_vote >= 75, "Y", "N"),
+    category = "Player",
+    needed_note = NA
+  ) %>%
+  select(hofID, yearID, votedBy, ballots, needed, votes, inducted, category, needed_note)
+
+hof_2025 <- hof_2025 %>%
+  rename(playerID = hofID)
+
+Updated_hof <- rbind(HallOfFame, hof_2025)
+
+
+View(Updated_hof)
+
+
 ```
 
+Above is the code to scrape and clean the data set and combine it with the Lahman data set. Completed by Ethan Rollinger
 
+```{r}
+Updated_hof %>% 
+  ggplot(aes(x = yearID, fill = inducted)) +
+  geom_bar() +
+  xlim(c(1936, 2025))
+```
 
+Here is the updated graphic with the new data from the lab. As you can see there is another bar created from the data that was scraped and cleaned from lab. 
