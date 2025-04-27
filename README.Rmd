@@ -1,12 +1,20 @@
----
-output: github_document
----
 
-<!-- README.md is generated from README.Rmd. Please edit the README.Rmd file -->
+---
+title: "DS 202 – Lab #4 Progress Report"
+author: Ash Bhuiyan
+date: "`r Sys.Date()`"
+output:
+  github_document:
+    toc: true
+    toc_depth: 2
+---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(rvest)
+library(Lahman)
+library(stringr)
 ```
 
 # Lab report #4 - instructions
@@ -17,82 +25,114 @@ All submissions to the github repo will be automatically uploaded for grading on
 
 # Lab 4: Scraping (into) the Hall of Fame
 
+---
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-library(Lahman)
+### 1. Visualize existing HallOfFame data
+
+```{r visualize-lahman}
 hof <- Lahman::HallOfFame
 hof %>% 
   ggplot(aes(x = yearID, y = votes/needed*100, group=playerID)) +
   geom_hline(yintercept = 100, colour="grey70") + 
   geom_line() +
-  geom_point(aes(colour = "inducted"), 
-    data = hof %>% filter(inducted=="Y")) +
-  xlim(c(2000, 2022)) +
+  geom_point(aes(colour = inducted), data = hof %>% filter(inducted=="Y")) +
+  xlim(2000, 2022) +
   ylab("Percent of votes")
 ```
 
-```{r}
-library(rvest)
+### 2. Scrape and clean 2025 Hall of Fame data
+
+```{r scrape-clean-2025}
 url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
-html <- read_html(url)
-table_node <- html %>% html_element("table")
-hof_2025_raw<- table_node %>% html_table(fill=TRUE)
+raw_tbl <- read_html(url) %>%
+  html_element("table") %>%
+  html_table(fill = TRUE)
 
-names(hof_2025_raw) <- as.character(unlist(hof_2025_raw[1, ]))
-hof_2025_raw <- hof_2025_raw[-1, ]
+# Promote the first row to column names
+names(raw_tbl) <- raw_tbl[1, ]
+hof_2025_raw <- raw_tbl[-1, ]
 
-names(hof_2025_raw)
+# FIX: Make column names unique
+names(hof_2025_raw) <- make.names(names(hof_2025_raw), unique = TRUE)
 
-summary(HallOfFame)
-View(HallOfFame)
-
-library(dplyr)
-library(stringr)
-
-colnames(hof_2025_raw) <- make.names(colnames(hof_2025_raw), unique = TRUE)
-
-names(hof_2025_raw)
-
-
+# Now you can safely filter and mutate
 hof_2025_clean <- hof_2025_raw %>%
-  filter(!is.na(Name) & Name != "" & !is.na(Votes) & Votes != "")
-
-hof_2025_clean <- hof_2025_clean %>%
+  filter(!is.na(Name), Name != "", !is.na(Votes), Votes != "") %>%
   distinct(Name, .keep_all = TRUE)
 
 hof_2025 <- hof_2025_clean %>%
   mutate(
     playerID = str_replace_all(Name, " ", ""),
-    yearID = 2025,
+    yearID = 2025L,
     votedBy = "BBWAA",
-    ballots = NA,
-    needed = NA,                             
-    votes = as.numeric(Votes),
-    pct_vote = as.numeric(str_replace(`X.vote`, "%", "")),
-    inducted = ifelse(pct_vote >= 75, "Y", "N"),
+    ballots = NA_integer_,
+    needed = NA_integer_,
+    votes = as.integer(Votes),
+    # Note: The column for percentage may be called "X.vote" if it was "%vote" originally
+    pct_vote = as.numeric(str_replace(X.vote, "%", "")),
+    inducted = if_else(pct_vote >= 75, "Y", "N"),
     category = "Player",
-    needed_note = NA
+    needed_note = NA_character_
   ) %>%
-  select(hofID, yearID, votedBy, ballots, needed, votes, inducted, category, needed_note)
-
-hof_2025 <- hof_2025 %>%
-  rename(playerID = hofID)
-
-Updated_hof <- rbind(HallOfFame, hof_2025)
-
-
-View(Updated_hof)
-
-
+  select(playerID, yearID, votedBy, ballots, needed, votes, pct_vote, inducted, category, needed_note)
+updated_hof <- bind_rows(HallOfFame, hof_2025)
 ```
 
-Above is the code to scrape and clean the data set and combine it with the Lahman data set. Completed by Ethan Rollinger
+### 3. Visualize updated Hall of Fame dataset
 
-```{r}
-Updated_hof %>% 
+```{r plot-updated}
+updated_hof %>% 
   ggplot(aes(x = yearID, fill = inducted)) +
   geom_bar() +
-  xlim(c(1936, 2025))
+  xlim(1936, 2025) +
+  labs(title = "Hall of Fame Elections, 1936-2025", x = "Year", y = "Number of Players")
 ```
 
-Here is the updated graphic with the new data from the lab. As you can see there is another bar created from the data that was scraped and cleaned from lab. 
+---
+
+## Ash Bhuiyan's Contribution: Analysis and Summary
+
+### 1. Histogram of 2025 Vote Percentages
+
+```{r hist-2025}
+hof_2025 %>%
+  ggplot(aes(x = pct_vote)) +
+  geom_histogram(binwidth = 5, boundary = 0, closed = "left") +
+  scale_x_continuous(breaks = seq(0,100,10)) +
+  labs(
+    title = "Histogram of 2025 Hall-of-Fame Vote Percentages",
+    x = "Vote Percentage",
+    y = "Number of Candidates"
+  ) +
+  geom_vline(xintercept = 75, linetype="dashed", color = "red") +
+  annotate("text", x = 80, y = 3, label = "75% inducted", vjust = -0.5)
+```
+
+### 2. Summary Statistics for 2025 Ballot
+
+```{r summary-2025}
+hof_2025 %>%
+  summarize(
+    mean_pct   = mean(pct_vote, na.rm = TRUE),
+    median_pct = median(pct_vote, na.rm = TRUE),
+    sd_pct     = sd(pct_vote, na.rm = TRUE),
+    min_pct    = min(pct_vote, na.rm = TRUE),
+    max_pct    = max(pct_vote, na.rm = TRUE)
+  )
+```
+
+| Statistic   | Value   |
+|:------------|:-------:|
+| **Mean**    | `r round(mean(hof_2025$pct_vote, na.rm=TRUE), 1)`% |
+| **Median**  | `r round(median(hof_2025$pct_vote, na.rm=TRUE), 1)`% |
+| **Std. Dev**| `r round(sd(hof_2025$pct_vote, na.rm=TRUE), 1)`% |
+| **Min**     | `r min(hof_2025$pct_vote, na.rm=TRUE)`% |
+| **Max**     | `r max(hof_2025$pct_vote, na.rm=TRUE)`% |
+
+### 3. Reflection
+
+In 2025, the Hall of Fame ballot showed a wide range of support for candidates. The histogram above shows most players received under 50%, with a few standouts above the 75% threshold for induction.
+
+---
+
+*I have completed (analysis/summary/visualization). - Ash Bhuiyan*
